@@ -5,7 +5,7 @@ var ACCLogger = {
     // 调试日志配置
     debugConfig: {
         enabled: true,
-        categories: 'FLUENT', // 专门调试自定义颜色问题相关的类别
+        categories: '', // 专门调试自定义颜色问题相关的类别
         availableCategories: [
             'init',           // 初始化相关
             'pref_get_set',   // 偏好设置读写
