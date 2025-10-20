@@ -99,4 +99,11 @@ If you encounter any problems or have suggestions for improvement:
 
 ---
 
-⭐ If this plugin helps you, please give the project a star!
+## 💖 Support
+
+If this project helped you, feel free to buy the author a drink.
+
+- Afdian (CNY): [https://afdian.com/a/aidecameron](https://afdian.com/a/aidecameron)
+- Ko-fi (USD): [https://ko-fi.com/aidecameron](https://ko-fi.com/aidecameron)
+
+⭐ Please don't forget to give the project a star!

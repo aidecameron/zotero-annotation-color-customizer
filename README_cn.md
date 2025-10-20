@@ -78,13 +78,19 @@
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-## 👤 作者
+## 👤 支持作者
 
-- **aidecameron** - [GitHub](https://github.com/aidecameron)
+
 - **个人博客** - [AI Decameron](https://blog.aidecameron.com)
 - **微信公众号** 
 
 <img src="https://cdn.jsdelivr.net/gh/aidecameron/imgbed@main/blog/2025/10/1760165896715_wechat_aidecameron.JPG?raw=true" width="20%"/>
+
+如果本项目帮到了你，欢迎请作者喝杯饮料～  
+
+- 爱发电（人民币）：[https://afdian.com/a/aidecameron](https://afdian.com/a/aidecameron)  
+- Ko-fi（美元）：[https://ko-fi.com/aidecameron](https://ko-fi.com/aidecameron)
+
 
 ## 🐛 问题反馈
 
