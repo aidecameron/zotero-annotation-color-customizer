@@ -83,9 +83,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👤 Author
 
-**aidecameron** - [GitHub](https://github.com/aidecameron)
-**My Blog** - [AI Decameron](https://blog.aidecameron.com)
-**Wechat Page** 
+- **aidecameron** - [GitHub](https://github.com/aidecameron)
+- **My Blog** - [AI Decameron](https://blog.aidecameron.com)
+- **Wechat Page** 
 
 <img src="https://cdn.jsdelivr.net/gh/aidecameron/imgbed@main/blog/2025/10/1760165896715_wechat_aidecameron.JPG?raw=true" width="20%"/>
 

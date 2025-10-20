@@ -80,9 +80,9 @@
 
 ## 👤 作者
 
-**aidecameron** - [GitHub](https://github.com/aidecameron)
-**个人博客** - [AI Decameron](https://blog.aidecameron.com)
-**微信公众号** 
+- **aidecameron** - [GitHub](https://github.com/aidecameron)
+- **个人博客** - [AI Decameron](https://blog.aidecameron.com)
+- **微信公众号** 
 
 <img src="https://cdn.jsdelivr.net/gh/aidecameron/imgbed@main/blog/2025/10/1760165896715_wechat_aidecameron.JPG?raw=true" width="20%"/>
 
