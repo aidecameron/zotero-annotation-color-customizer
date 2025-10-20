@@ -1,0 +1,45 @@
+<linkset>
+  <html:link rel="localization" href="annotation-color-customizer.ftl" />
+</linkset>
+
+<!-- `Zotero.AnnotationColorCustomizerPreferences` is defined in `pane.js` -->
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+          xmlns:html="http://www.w3.org/1999/xhtml"
+          class="annotation-color-customizer-groupbox" 
+          onload="Zotero.AnnotationColorCustomizerPreferences.init();">
+    
+    <groupbox>
+        <caption data-l10n-id="acc-functionality-control"/>
+        
+        <vbox>
+            <hbox align="center" style="margin-bottom: 8px;">
+                <label data-l10n-id="acc-translation-mode" style="min-width: 80px;"/>
+                <menulist id="mode-selector" style="min-width: 150px;" oncommand="Zotero.AnnotationColorCustomizerPreferences.onModeChange(event);">
+                    <menupopup>
+                        <menuitem data-l10n-id="acc-system-default" value="default"/>
+                        <menuitem data-l10n-id="acc-custom-translation" value="custom"/>
+                    </menupopup>
+                </menulist>
+            </hbox>
+            
+            <description style="margin-bottom: 10px;" data-l10n-id="acc-mode-description">
+            </description>
+        </vbox>
+    </groupbox>
+    
+    <groupbox>
+        <caption data-l10n-id="acc-color-configuration"/>
+        
+        <description style="margin-bottom: 10px;" data-l10n-id="acc-config-description">
+        </description>
+        
+        <vbox id="color-config-container">
+            <!-- 颜色配置项将通过JavaScript动态生成 -->
+        </vbox>
+        
+        <hbox style="margin-top: 15px;" pack="end">
+            <button id="apply-config-btn" data-l10n-id="acc-apply-changes" style="font-weight: bold;"/>
+        </hbox>
+    </groupbox>
+
+</groupbox>

@@ -1,0 +1,29 @@
+{
+  "name": "zotero-annotation-color-customizer",
+  "version": "1.0.0",
+  "description": "Zotero 7 plugin for customizing annotation color tooltips and translations",
+  "main": "bootstrap.js",
+  "scripts": {
+    "build": "./build.sh",
+    "dev": "npm run build && npm run install-dev",
+    "install-dev": "ln -sf $(pwd) ~/Zotero/profiles/dev/extensions/annotation-color-customizer@jblogs.github.io"
+  },
+  "keywords": [
+    "zotero",
+    "plugin",
+    "annotation",
+    "color",
+    "customization",
+    "tooltip",
+    "translation"
+  ],
+  "author": "jblogs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jblogs/zotero-annotation-color-customizer.git"
+  },
+  "devDependencies": {
+    "zip-cli": "^1.0.0"
+  }
+}
