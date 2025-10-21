@@ -15,7 +15,9 @@ var ACCLogger = {
             'config',         // 配置加载相关
             'mode',           // 模式切换相关
             'bootstrap',      // bootstrap相关
-            'pane'            // 偏好设置面板相关
+            'pane',            // 偏好设置面板相关
+            'acc',             // 插件主逻辑相关
+            'FLUENT'          // Fluent相关
         ]
     },
 
@@ -44,6 +46,8 @@ var ACCLogger = {
         }
     },
 
+    
+
     // 调试日志方法
     debugLog: function(category, message, ...args) {
         if (!this.debugConfig.enabled) return;
@@ -69,6 +73,10 @@ var ACCLogger = {
                 }
             }
         }
+    },
+
+    log: function(category, message, ...args) {
+        this.debugLog(category, message, ...args);
     },
 
     // 设置调试日志类别
@@ -104,11 +112,11 @@ var ACCLogger = {
 
 // 为了向后兼容，保留原来的log函数
 function log(msg) {
-    ACCLogger.log(msg);
+    ACCLogger.debugLog('bootstrap', msg);
 }
 
 function install() {
-    log("Installed");
+    Zotero.getMainWindow().console.log("ACC Installed");
 }
 
 async function startup({ id, version, rootURI }) {
@@ -197,7 +205,7 @@ function shutdown() {
     // 清理全局日志对象
     if (typeof Zotero !== 'undefined' && Zotero.ACCLogger) {
         delete Zotero.ACCLogger;
-        log("ACCLogger cleaned up from global Zotero object");
+        Zotero.getMainWindow().console.log("ACCLogger cleaned up from global Zotero object");
     }
 }
 
@@ -209,17 +217,17 @@ function uninstall() {
         try {
             AnnotationColorCustomizer.removeFromAllWindows();
             AnnotationColorCustomizer.cleanup();
-            log("Plugin cleanup completed");
+            Zotero.getMainWindow().console.log("ACC plugin cleanup completed");
         } catch (e) {
-            log("Error during cleanup: " + e.message);
+            Zotero.getMainWindow().console.log("Error during cleanup: " + e.message);
         }
     }
     
     // 清理全局日志对象
     if (typeof Zotero !== 'undefined' && Zotero.ACCLogger) {
         delete Zotero.ACCLogger;
-        log("ACCLogger cleaned up from global Zotero object during uninstall");
+        Zotero.getMainWindow().console.log("ACCLogger cleaned up from global Zotero object during uninstall");
     }
     
-    log("Uninstalled");
+    Zotero.getMainWindow().console.log("ACC uninstalled");
 }

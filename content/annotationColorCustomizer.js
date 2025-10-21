@@ -28,7 +28,11 @@ var AnnotationColorCustomizer = {
 
     // 便捷的日志方法
     log: function(msg) {
-        this.getLogger().log(msg);
+        this.getLogger().log('acc', msg);
+    },
+
+    log: function(category, msg) {
+        this.getLogger().log(category, msg);
     },
 
     debugLog: function(category, message, ...args) {
@@ -217,40 +221,52 @@ var AnnotationColorCustomizer = {
     
     // ==================== 直接翻译功能 ====================
     
-    // 查找 reader 对象的函数
-    findReaderObject() {
-        this.debugLog('translation', '开始查找 reader 对象...');
+    // 查找所有 reader 对象的函数
+    findAllReaderObjects() {
+        this.debugLog('translation', '开始查找所有 reader 对象...');
+        const readerObjects = [];
         
         try {
-            // 方法1: 从所有阅读器窗口中查找 reader 对象
-            const readerWindows = this.getAllReaderWindows();
-            this.debugLog('translation', `获得 ${readerWindows.length} 个阅读器窗口`);
-            
-            for (let readerWindow of readerWindows) {
-                if (readerWindow && readerWindow.reader) {
-                    this.debugLog('translation', `在阅读器窗口中找到 reader 对象`);
-                    return readerWindow.reader;
-                }
-            }
-            
-            // 方法2: 从 Zotero.Reader._readers 中查找
+            // 方法1: 从 Zotero.Reader._readers 获取所有 reader 实例
             if (typeof Zotero !== 'undefined' && Zotero.Reader && Zotero.Reader._readers) {
-                this.debugLog('translation', `检查 Zotero.Reader._readers，共 ${Zotero.Reader._readers.length} 个实例`);
-                for (let reader of Zotero.Reader._readers) {
-                    if (reader && typeof reader._getString === 'function') {
-                        this.debugLog('translation', `在 Zotero.Reader._readers 中找到有效的 reader 对象`);
-                        return reader;
+                this.debugLog('translation', `在 Zotero.Reader._readers 找到 ${Zotero.Reader._readers.length} 个 reader 实例`);
+                readerObjects.push(...Zotero.Reader._readers);
+            }
+            
+            // 方法2: 从所有阅读器窗口查找 reader 对象
+            const allReaderWindows = this.getAllReaderWindows();
+            for (let readerWindow of allReaderWindows) {
+                try {
+                    // 在阅读器窗口中查找 reader 对象
+                    if (readerWindow.reader && typeof readerWindow.reader._getString === 'function') {
+                        this.debugLog('translation', '在阅读器窗口中找到 reader 对象');
+                        readerObjects.push(readerWindow.reader);
                     }
+                    
+                    // 遍历窗口对象查找包含 _getString 方法的对象
+                    for (let prop in readerWindow) {
+                        try {
+                            let obj = readerWindow[prop];
+                            if (obj && typeof obj === 'object' && typeof obj._getString === 'function') {
+                                this.debugLog('translation', `在 readerWindow.${prop} 找到包含 _getString 的对象`);
+                                readerObjects.push(obj);
+                            }
+                        } catch (error) {
+                            // 忽略访问错误
+                        }
+                    }
+                } catch (error) {
+                    this.debugLog('translation', `查找阅读器窗口中的 reader 对象失败: ${error.message}`);
                 }
             }
             
-            // 方法3: 从主窗口中查找
+            // 方法3: 从主窗口查找（保持向后兼容）
             const mainWindows = Zotero.getMainWindows();
             for (let mainWindow of mainWindows) {
                 // 检查 window.reader
-                if (mainWindow.reader) {
+                if (mainWindow.reader && typeof mainWindow.reader._getString === 'function') {
                     this.debugLog('translation', `在主窗口中找到 reader 对象`);
-                    return mainWindow.reader;
+                    readerObjects.push(mainWindow.reader);
                 }
                 
                 // 遍历主窗口的属性查找包含 _getString 方法的对象
@@ -259,25 +275,7 @@ var AnnotationColorCustomizer = {
                         let obj = mainWindow[prop];
                         if (obj && typeof obj === 'object' && typeof obj._getString === 'function') {
                             this.debugLog('translation', `在主窗口的 ${prop} 属性中找到包含 _getString 的对象`);
-                            return obj;
-                        }
-                    } catch (error) {
-                        // 忽略访问错误
-                    }
-                }
-            }
-            
-            // 方法4: 从阅读器窗口中遍历查找
-            for (let readerWindow of readerWindows) {
-                if (!readerWindow) continue;
-                
-                // 遍历阅读器窗口的属性查找包含 _getString 方法的对象
-                for (let prop in readerWindow) {
-                    try {
-                        let obj = readerWindow[prop];
-                        if (obj && typeof obj === 'object' && typeof obj._getString === 'function') {
-                            this.debugLog('translation', `在阅读器窗口的 ${prop} 属性中找到包含 _getString 的对象`);
-                            return obj;
+                            readerObjects.push(obj);
                         }
                     } catch (error) {
                         // 忽略访问错误
@@ -286,11 +284,19 @@ var AnnotationColorCustomizer = {
             }
             
         } catch (error) {
-            this.debugLog('translation', `findReaderObject 出错: ${error.message}`);
+            this.debugLog('translation', `findAllReaderObjects 出错: ${error.message}`);
         }
         
-        this.debugLog('translation', '未找到 reader 对象');
-        return null;
+        // 去重
+        const uniqueReaders = [...new Set(readerObjects)];
+        this.debugLog('translation', `总共找到 ${uniqueReaders.length} 个唯一的 reader 对象`);
+        return uniqueReaders;
+    },
+
+    // 查找单个 reader 对象的函数（保持向后兼容）
+    findReaderObject() {
+        const allReaders = this.findAllReaderObjects();
+        return allReaders.length > 0 ? allReaders[0] : null;
     },
     
     // 查找Zotero的字符串翻译系统
@@ -318,10 +324,10 @@ var AnnotationColorCustomizer = {
             try {
                 const result = candidates[i]();
                 if (result && typeof result === 'function') {
-                    this.log(`找到翻译函数 (方法 ${i + 1})`);
+                    this.log('translation', `找到翻译函数 (方法 ${i + 1})`);
                     return result;
                 } else if (result && typeof result.GetStringFromName === 'function') {
-                    this.log(`找到字符串包 (方法 ${i + 1})`);
+                    this.log('translation', `找到字符串包 (方法 ${i + 1})`);
                     return (key) => {
                         try {
                             return result.GetStringFromName(key);
@@ -331,11 +337,11 @@ var AnnotationColorCustomizer = {
                     };
                 }
             } catch (error) {
-                this.log(`翻译系统查找方法 ${i + 1} 失败: ${error.message}`);
+                this.log('translation', `翻译系统查找方法 ${i + 1} 失败: ${error.message}`);
             }
         }
         
-        this.log('未找到Zotero翻译系统');
+        this.log('translation', '未找到Zotero翻译系统');
         return null;
     },
     
@@ -343,7 +349,7 @@ var AnnotationColorCustomizer = {
     directTranslate(key, ...args) {
         // 只在第一次调用时显示翻译映射，避免日志过多
         if (!this._debugMappingShown) {
-            this.log(`[TEMP_DEBUG] 当前翻译映射: ${JSON.stringify(this.customColorTranslations, null, 2)}`);
+            this.log('translation', `[TEMP_DEBUG] 当前翻译映射: ${JSON.stringify(this.customColorTranslations, null, 2)}`);
             this._debugMappingShown = true;
         }
         
@@ -352,7 +358,7 @@ var AnnotationColorCustomizer = {
         // 1. 首先检查自定义颜色映射
         if (this.customColorTranslations[key]) {
             const customResult = this.customColorTranslations[key];
-            this.log(`✅ 自定义映射: "${key}" -> "${customResult}"`);
+            this.log('translation', `✅ 自定义映射: "${key}" -> "${customResult}"`);
             return customResult;
         }
         
@@ -361,119 +367,291 @@ var AnnotationColorCustomizer = {
             try {
                 const translated = this.globalState.zoteroStringBundle(key, ...args);
                 if (translated && translated !== key) {
-                    this.log(`✅ Zotero翻译: "${key}" -> "${translated}"`);
+                    this.log('translation', `✅ Zotero翻译: "${key}" -> "${translated}"`);
                     return translated;
                 }
             } catch (error) {
-                this.log(`Zotero翻译失败: ${error.message}`);
+                this.log('translation', `Zotero翻译失败: ${error.message}`);
             }
         }
         
         // 3. 如果都失败，返回key本身
-        this.log(`⚠️ 翻译失败，返回原key: "${key}"`);
+        this.log('translation', `⚠️ 翻译失败，返回原key: "${key}"`);
         return key;
     },
     
-    // 拦截 reader._getString 方法 - 完全避免调用原始方法
-    interceptReaderGetString() {
-        if (this.globalState.isReaderIntercepted) {
-            this.debugLog('translation', '已经拦截过，跳过');
+    // 拦截单个 reader._getString 方法
+    interceptSingleReader(reader) {
+        if (!reader || typeof reader._getString !== 'function') {
+            this.debugLog('translation', 'reader 对象无效或没有 _getString 方法');
             return false;
         }
         
-        const reader = this.findReaderObject();
-        if (!reader) {
-            this.debugLog('translation', '未找到 reader 对象，无法拦截');
-            return false;
+        // 检查是否已经拦截过这个 reader
+        if (this.globalState.interceptedReaders && this.globalState.interceptedReaders.has(reader)) {
+            this.debugLog('translation', '该 reader 已经被拦截过，跳过');
+            return true;
         }
         
-        if (typeof reader._getString !== 'function') {
-            this.debugLog('translation', 'reader 对象没有 _getString 方法');
-            return false;
+        this.debugLog('translation', '开始拦截单个 reader._getString 方法');
+        
+        // 初始化 interceptedReaders 和 originalMethods 如果不存在
+        if (!this.globalState.interceptedReaders) {
+            this.globalState.interceptedReaders = new Set();
+        }
+        if (!this.globalState.originalMethods) {
+            this.globalState.originalMethods = new Map();
         }
         
-        // 查找Zotero翻译系统
-        this.globalState.zoteroStringBundle = this.findZoteroStringBundle();
-        
-        // 保存reader对象引用和原始方法
-        this.globalState.readerObjectRef = reader;
-        this.globalState.originalReaderGetString = reader._getString;
-        this.debugLog('translation', '已保存原始 _getString 方法和reader引用');
+        // 保存原始方法
+        const originalMethod = reader._getString;
+        this.globalState.originalMethods.set(reader, originalMethod);
         
         // 替换方法 - 完全避免调用原始方法
         const self = this;
         reader._getString = function(key, ...args) {
-            self.log(`🔄 拦截到调用: key="${key}", args=[${args.join(', ')}]`);
+            self.log('translation', `🔄 拦截到调用: key="${key}", args=[${args.join(', ')}]`);
             
             // 直接使用我们的翻译函数，不调用原始方法
             const result = self.directTranslate(key, ...args);
             
-            self.log(`✅ 返回结果: "${result}"`);
+            self.log('translation', `✅ 返回结果: "${result}"`);
             return result;
         };
         
         // 标记已拦截
         reader._getString._isIntercepted = true;
-        reader._getString._originalFunc = this.globalState.originalReaderGetString;
-        this.globalState.isReaderIntercepted = true;
+        reader._getString._originalFunc = originalMethod;
+        this.globalState.interceptedReaders.add(reader);
         
-        this.debugLog('translation', '成功拦截 reader._getString 方法（直接翻译策略）');
+        this.debugLog('translation', '成功拦截单个 reader._getString 方法');
         return true;
     },
-    
-    // 恢复原始翻译方法
-    restoreReaderGetString() {
-        this.debugLog('translation', '开始恢复原始 _getString 方法...');
+
+    // 拦截所有 reader._getString 方法
+    interceptAllReaders() {
+        this.debugLog('translation', '开始拦截所有 reader._getString 方法...');
         
-        if (!this.globalState.isReaderIntercepted) {
-            this.debugLog('translation', '没有需要恢复的拦截');
-            return;
+        const allReaders = this.findAllReaderObjects();
+        if (allReaders.length === 0) {
+            this.debugLog('translation', '未找到任何 reader 对象');
+            return false;
         }
         
-        const reader = this.globalState.readerObjectRef || this.findReaderObject();
-        if (!reader) {
-            this.debugLog('translation', '未找到 reader 对象，无法恢复');
-            return;
+        // 查找Zotero翻译系统（只需要查找一次）
+        if (!this.globalState.zoteroStringBundle) {
+            this.globalState.zoteroStringBundle = this.findZoteroStringBundle();
         }
         
-        this.debugLog('translation', '找到 reader 对象，准备恢复...');
+        // 初始化 interceptedReaders 如果不存在
+        if (!this.globalState.interceptedReaders) {
+            this.globalState.interceptedReaders = new Set();
+        }
         
-        // 不再尝试恢复可能已被污染的原始函数
-        // 直接创建一个新的、安全的翻译函数
-        this.debugLog('translation', '创建新的安全翻译函数，避免使用可能被污染的原始函数');
-        
-        const zoteroTranslator = this.findZoteroStringBundle();
-        if (zoteroTranslator) {
-            reader._getString = function(key, ...args) {
-                try {
-                    // 直接使用 Zotero 翻译系统，不调用任何可能递归的函数
-                    const result = zoteroTranslator(key, ...args);
-                    return result || key;
-                } catch (error) {
-                    this.debugLog('translation', `翻译失败: ${key}`, error.message);
-                    return key;
+        let interceptedCount = 0;
+        allReaders.forEach(reader => {
+            // 检查是否已经拦截过这个 reader
+            if (!this.globalState.interceptedReaders.has(reader)) {
+                if (this.interceptSingleReader(reader)) {
+                    interceptedCount++;
                 }
-            };
-            this.debugLog('translation', '已创建新的基于 Zotero 翻译系统的 _getString 方法');
-        } else {
-            // 如果找不到 Zotero 翻译系统，创建一个简单的回退函数
-            this.debugLog('translation', '未找到 Zotero 翻译系统，创建简单回退函数');
-            reader._getString = function(key, ...args) {
-                // 简单返回 key，避免任何可能的递归
-                return key;
-            };
+            } else {
+                this.debugLog('translation', 'reader 已被拦截，跳过');
+            }
+        });
+        
+        this.log('translation', `成功拦截了 ${interceptedCount} 个新的 reader 对象`);
+        return interceptedCount > 0;
+    },
+
+    // 拦截 reader._getString 方法 - 完全避免调用原始方法（保持向后兼容）
+    interceptReaderGetString() {
+        if (this.globalState.interceptedReaders && this.globalState.interceptedReaders.size > 0) {
+            this.debugLog('translation', '已经拦截过，尝试拦截新的 reader');
+            return this.interceptAllReaders();
         }
         
-        // 清理标记和属性
-        if (reader._getString) {
-            delete reader._getString._isIntercepted;
-            delete reader._getString._originalFunc;
+        return this.interceptAllReaders();
+    },
+    // 恢复单个 reader 的原始翻译方法
+    restoreSingleReader(reader) {
+        this.debugLog('translation', '=== 开始恢复单个 reader ===');
+        
+        // 详细检查 reader 对象
+        this.debugLog('translation', '检查 reader 对象有效性...');
+        if (!reader) {
+            this.debugLog('translation', 'reader 对象为 null 或 undefined，跳过');
+            return false;
         }
         
-        // 重置全局状态
-        this.globalState.isReaderIntercepted = false;
+        // 检查 reader 是否是 dead object
+        try {
+            // 尝试访问 reader 的属性来检测是否是 dead object
+            const hasGetString = typeof reader._getString === 'function';
+            this.debugLog('translation', `reader._getString 存在: ${hasGetString}`);
+            
+            // 尝试访问其他属性
+            const readerType = Object.prototype.toString.call(reader);
+            this.debugLog('translation', `reader 对象类型: ${readerType}`);
+            
+        } catch (error) {
+            this.debugLog('translation', `❌ reader 对象访问失败 (可能是 dead object): ${error.message}`);
+            this.debugLog('translation', `错误类型: ${error.name}`);
+            
+            // 如果是 dead object，从全局状态中清理引用
+            try {
+                this.globalState.interceptedReaders.delete(reader);
+                this.globalState.originalMethods.delete(reader);
+                this.debugLog('translation', '已清理 dead object 的引用');
+            } catch (cleanupError) {
+                this.debugLog('translation', `清理 dead object 引用失败: ${cleanupError.message}`);
+            }
+            return false;
+        }
         
-        this.debugLog('translation', '✅ 已创建新的 reader._getString 方法');
+        if (!this.globalState.interceptedReaders.has(reader)) {
+            this.debugLog('translation', 'reader 不在已拦截列表中，跳过');
+            return false;
+        }
+        
+        this.debugLog('translation', '恢复单个 reader 的原始方法...');
+        
+        const originalMethod = this.globalState.originalMethods.get(reader);
+        this.debugLog('translation', `原始方法存在: ${!!originalMethod}`);
+        
+        if (originalMethod) {
+            try {
+                this.debugLog('translation', '开始重新设置 _getString 方法...');
+                
+                // 不再使用可能被污染的原始函数，创建新的安全翻译函数
+                const zoteroTranslator = this.findZoteroStringBundle();
+                if (zoteroTranslator) {
+                    this.debugLog('translation', '使用 Zotero 翻译系统创建新的 _getString 方法');
+                    reader._getString = function(key, ...args) {
+                        try {
+                            // 直接使用 Zotero 翻译系统，不调用任何可能递归的函数
+                            const result = zoteroTranslator(key, ...args);
+                            return result || key;
+                        } catch (error) {
+                            console.log(`翻译失败: ${key}`, error.message);
+                            return key;
+                        }
+                    };
+                } else {
+                    this.debugLog('translation', '未找到 Zotero 翻译系统，创建回退函数');
+                    // 如果找不到 Zotero 翻译系统，创建一个简单的回退函数
+                    reader._getString = function(key, ...args) {
+                        return key;
+                    };
+                }
+                
+                this.debugLog('translation', '_getString 方法重新设置完成');
+                
+            } catch (setterError) {
+                this.debugLog('translation', `❌ 设置 _getString 方法失败: ${setterError.message}`);
+                this.debugLog('translation', `设置错误类型: ${setterError.name}`);
+                throw setterError; // 重新抛出错误以便上层捕获
+            }
+            
+            // 清理标记和属性
+            try {
+                this.debugLog('translation', '开始清理标记和属性...');
+                if (reader._getString) {
+                    delete reader._getString._isIntercepted;
+                    delete reader._getString._originalFunc;
+                    this.debugLog('translation', '标记和属性清理完成');
+                }
+            } catch (cleanupError) {
+                this.debugLog('translation', `❌ 清理标记和属性失败: ${cleanupError.message}`);
+                throw cleanupError;
+            }
+        }
+        
+        // 从全局状态中移除
+        try {
+            this.debugLog('translation', '从全局状态中移除 reader...');
+            this.globalState.interceptedReaders.delete(reader);
+            this.globalState.originalMethods.delete(reader);
+            this.debugLog('translation', '从全局状态移除完成');
+        } catch (removeError) {
+            this.debugLog('translation', `❌ 从全局状态移除失败: ${removeError.message}`);
+            throw removeError;
+        }
+        
+        this.debugLog('translation', '=== 单个 reader 恢复完成 ===');
+        return true;
+    },
+
+    // 恢复所有 reader 的原始翻译方法
+    restoreAllReaders() {
+        this.debugLog('translation', '=== 开始恢复所有 reader 的原始翻译方法 ===');
+        
+        // 获取所有已拦截的 reader
+        const interceptedReaders = [...this.globalState.interceptedReaders];
+        this.debugLog('translation', `找到 ${interceptedReaders.length} 个已拦截的 reader`);
+        
+        if (interceptedReaders.length === 0) {
+            this.debugLog('translation', '没有需要恢复的 reader');
+            return false;
+        }
+        
+        let successCount = 0;
+        let failureCount = 0;
+        
+        // 恢复所有已拦截的 reader
+        interceptedReaders.forEach((reader, index) => {
+            this.debugLog('translation', `--- 处理第 ${index + 1}/${interceptedReaders.length} 个 reader ---`);
+            
+            try {
+                // 先检查 reader 是否还有效
+                const readerType = Object.prototype.toString.call(reader);
+                this.debugLog('translation', `Reader ${index + 1} 类型: ${readerType}`);
+                
+                // 尝试访问 reader 的基本属性
+                const hasGetString = typeof reader._getString === 'function';
+                this.debugLog('translation', `Reader ${index + 1} _getString 方法存在: ${hasGetString}`);
+                
+                if (this.restoreSingleReader(reader)) {
+                    successCount++;
+                    this.debugLog('translation', `✅ Reader ${index + 1} 恢复成功`);
+                } else {
+                    failureCount++;
+                    this.debugLog('translation', `⚠️ Reader ${index + 1} 恢复失败（可能已经恢复或无效）`);
+                }
+                
+            } catch (error) {
+                failureCount++;
+                this.debugLog('translation', `❌ Reader ${index + 1} 恢复失败: ${error.message}`);
+                this.debugLog('translation', `Reader ${index + 1} 错误类型: ${error.name}`);
+                
+                // 尝试清理有问题的 reader 引用
+                try {
+                    this.debugLog('translation', `尝试清理 Reader ${index + 1} 的引用...`);
+                    this.globalState.interceptedReaders.delete(reader);
+                    this.globalState.originalMethods.delete(reader);
+                    this.debugLog('translation', `Reader ${index + 1} 引用清理完成`);
+                } catch (cleanupError) {
+                    this.debugLog('translation', `Reader ${index + 1} 引用清理失败: ${cleanupError.message}`);
+                }
+            }
+        });
+        
+        this.debugLog('translation', `=== 恢复完成统计 ===`);
+        this.debugLog('translation', `成功恢复: ${successCount} 个`);
+        this.debugLog('translation', `恢复失败: ${failureCount} 个`);
+        this.debugLog('translation', `剩余已拦截 reader 数量: ${this.globalState.interceptedReaders.size}`);
+        this.debugLog('translation', `剩余原始方法数量: ${this.globalState.originalMethods.size}`);
+        
+        return successCount > 0;
+    },
+
+    restoreReaderGetString() {
+        if (this.globalState.interceptedReaders && this.globalState.interceptedReaders.size === 0) {
+            this.debugLog('translation', '没有被拦截的 reader，无需恢复');
+            return false;
+        }
+        
+        return this.restoreAllReaders();
     },
     
     // ==================== 颜色 Tooltip 自定义功能 ====================
@@ -873,6 +1051,10 @@ var AnnotationColorCustomizer = {
                                 win.location.href.includes('pdf-reader')) {
                                 this.debugLog('window', '检测到新的阅读器窗口');
                                 this.setupReaderWindowListener(win);
+                                
+                                // 重要：为新开的阅读器窗口拦截翻译功能
+                                this.debugLog('window', '为新阅读器窗口拦截翻译功能...');
+                                this.interceptAllReaders();
                             }
                         }
                     }, 1000);
@@ -882,6 +1064,55 @@ var AnnotationColorCustomizer = {
         
         Services.ww.registerNotification(windowWatcher);
         this.globalState.windowWatcher = windowWatcher;
+        
+        // 同时在主窗口中监听 iframe 或嵌入的阅读器
+        const mainWindows = Zotero.getMainWindows();
+        mainWindows.forEach(mainWindow => {
+            if (mainWindow.document) {
+                const observer = new mainWindow.MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList') {
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.nodeType === 1) {
+                                    // 检查是否是阅读器相关的元素
+                                    if (node.tagName === 'IFRAME' || 
+                                        (node.classList && node.classList.contains('reader')) ||
+                                        (node.querySelector && node.querySelector('iframe[src*="reader"]'))) {
+                                        this.debugLog('window', '检测到阅读器元素被添加');
+                                        setTimeout(() => {
+                                            // 重新查找所有阅读器窗口并设置监听器
+                                            const allReaderWindows = this.getAllReaderWindows();
+                                            allReaderWindows.forEach(readerWindow => {
+                                                this.setupReaderWindowListener(readerWindow);
+                                            });
+                                            // 为新发现的阅读器设置翻译拦截
+                                            this.debugLog('window', '为新发现的阅读器设置翻译拦截');
+                                            this.interceptAllReaders();
+                                        }, 1000);
+                                    }
+                                    
+                                    // 直接在主窗口中查找颜色选择器
+                                    if (node.querySelector && node.querySelector('.selection-popup .colors')) {
+                                        this.debugLog('window', '在主窗口中检测到颜色选择器');
+                                        setTimeout(() => {
+                                            this.customizeColorTooltips(mainWindow);
+                                        }, 100);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                observer.observe(mainWindow.document.body || mainWindow.document.documentElement, {
+                    childList: true,
+                    subtree: true
+                });
+                
+                this.globalState.mainWindowObservers.add(observer);
+                this.debugLog('window', '已为主窗口设置监听器');
+            }
+        });
         
         this.debugLog('window', '已设置窗口监听器');
     },
@@ -945,15 +1176,57 @@ var AnnotationColorCustomizer = {
         this._debugMappingShown = false;
         this.debugLog('mode', '[TEMP_DEBUG] 已重置调试标志');
         
-        // 清理所有观察器
+        // 清理所有观察器（带 dead object 检测）
+        let observerSuccessCount = 0;
+        let observerFailCount = 0;
+        
         this.globalState.observers.forEach(observer => {
             try {
-                observer.disconnect();
+                // 检查 observer 是否为 dead object
+                if (observer && typeof observer.disconnect === 'function') {
+                    observer.disconnect();
+                    observerSuccessCount++;
+                } else {
+                    this.debugLog('init', 'Observer 对象无效或缺少 disconnect 方法');
+                    observerFailCount++;
+                }
             } catch (error) {
-                this.debugLog('init', `清理观察器时出错: ${error.message}`);
+                observerFailCount++;
+                if (error.message && error.message.includes('dead object')) {
+                    this.debugLog('init', `检测到 dead object observer: ${error.message}`);
+                } else {
+                    this.debugLog('init', `清理观察器时出错: ${error.message}`);
+                }
             }
         });
         this.globalState.observers.clear();
+        this.debugLog('init', `观察器清理完成 - 成功: ${observerSuccessCount}, 失败: ${observerFailCount}`);
+        
+        // 清理主窗口观察器（带 dead object 检测）
+        let mainObserverSuccessCount = 0;
+        let mainObserverFailCount = 0;
+        
+        this.globalState.mainWindowObservers.forEach(observer => {
+            try {
+                // 检查 observer 是否为 dead object
+                if (observer && typeof observer.disconnect === 'function') {
+                    observer.disconnect();
+                    mainObserverSuccessCount++;
+                } else {
+                    this.debugLog('init', 'Main window observer 对象无效或缺少 disconnect 方法');
+                    mainObserverFailCount++;
+                }
+            } catch (error) {
+                mainObserverFailCount++;
+                if (error.message && error.message.includes('dead object')) {
+                    this.debugLog('init', `检测到 dead object main observer: ${error.message}`);
+                } else {
+                    this.debugLog('init', `清理主窗口观察器时出错: ${error.message}`);
+                }
+            }
+        });
+        this.globalState.mainWindowObservers.clear();
+        this.debugLog('init', `主窗口观察器清理完成 - 成功: ${mainObserverSuccessCount}, 失败: ${mainObserverFailCount}`);
         
         // 清理窗口监听器
         if (this.globalState.windowWatcher) {
@@ -965,14 +1238,48 @@ var AnnotationColorCustomizer = {
             this.globalState.windowWatcher = null;
         }
         
-        // 清理阅读器窗口集合
+        // 清理阅读器窗口集合（带 dead object 检测）
+        let readerWindowSuccessCount = 0;
+        let readerWindowFailCount = 0;
+        
+        this.globalState.readerWindows.forEach(readerWindow => {
+            try {
+                // 检查 readerWindow 是否为 dead object
+                if (readerWindow && typeof readerWindow === 'object') {
+                    // 尝试访问属性来检测 dead object
+                    const testAccess = readerWindow.location;
+                    
+                    // 清理窗口上的自定义属性
+                    if (readerWindow._colorTooltipObserver) {
+                        delete readerWindow._colorTooltipObserver;
+                    }
+                    readerWindowSuccessCount++;
+                } else {
+                    this.debugLog('init', 'Reader window 对象无效');
+                    readerWindowFailCount++;
+                }
+            } catch (error) {
+                readerWindowFailCount++;
+                if (error.message && error.message.includes('dead object')) {
+                    this.debugLog('init', `检测到 dead object reader window: ${error.message}`);
+                } else {
+                    this.debugLog('init', `清理阅读器窗口时出错: ${error.message}`);
+                }
+            }
+        });
         this.globalState.readerWindows.clear();
+        this.debugLog('init', `阅读器窗口清理完成 - 成功: ${readerWindowSuccessCount}, 失败: ${readerWindowFailCount}`);
         
         // 完全重置全局状态（插件卸载时需要彻底清理）
         this.globalState.isReaderIntercepted = false;
         this.globalState.readerObjectRef = null;
         this.globalState.originalReaderGetString = null;
         this.globalState.zoteroStringBundle = null;
+        
+        // 输出最终清理统计
+        const totalSuccess = observerSuccessCount + mainObserverSuccessCount + readerWindowSuccessCount;
+        const totalFail = observerFailCount + mainObserverFailCount + readerWindowFailCount;
+        this.debugLog('init', `清理统计 - 总成功: ${totalSuccess}, 总失败: ${totalFail}`);
         
         this.debugLog('mode', '[TEMP_DEBUG] 清理后的翻译映射:', JSON.stringify(this.customColorTranslations, null, 2));
         this.debugLog('mode', '[TEMP_DEBUG] ===== CLEANUP 结束 =====');
@@ -1060,7 +1367,7 @@ var AnnotationColorCustomizer = {
             this.debugLog('config', '[TEMP_DEBUG] 重新生成的翻译映射:', JSON.stringify(this.customColorTranslations, null, 2));
             
             // 强制显示新的翻译映射
-            this.log(`[TEMP_DEBUG] 配置重载后的翻译映射: ${JSON.stringify(this.customColorTranslations, null, 2)}`);
+            this.log('translation', `[TEMP_DEBUG] 配置重载后的翻译映射: ${JSON.stringify(this.customColorTranslations, null, 2)}`);
             
             // 如果插件当前处于活动状态，重新应用配置
             if (this.globalState.isActive) {

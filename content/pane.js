@@ -2,7 +2,7 @@
 (function() {
     // 尝试使用统一的日志系统
     if (typeof Zotero !== 'undefined' && Zotero.ACCLogger) {
-        Zotero.ACCLogger.log("pane.js script is being loaded");
+        Zotero.ACCLogger.log('pane',"pane.js script is being loaded");
     } else if (typeof Zotero !== 'undefined' && Zotero.getMainWindow && Zotero.getMainWindow().console) {
         Zotero.getMainWindow().console.log("[TEMP_DEBUG] pane.js script is being loaded");
     }
@@ -36,7 +36,7 @@ function getLogger() {
 
 // 便捷的日志方法
 function log(msg) {
-    getLogger().log(msg);
+    getLogger().log('pane', msg);
 }
 
 function debug(category, message, ...args) {
