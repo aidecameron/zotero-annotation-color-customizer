@@ -1,6 +1,6 @@
 # 🎨 Annotation Color Customizer
 
-A simple Zotero 7 plugin that allows you to customize annotation color display names and tooltips without affecting Zotero's core functionality.
+A simple Zotero 7/8 plugin that allows you to customize annotation color display names and tooltips without affecting Zotero's core functionality.
 
 ## ✨ Key Features
 
@@ -73,9 +73,10 @@ A simple Zotero 7 plugin that allows you to customize annotation color display n
 
 ## 📋 Compatibility
 
-- **Zotero Version**: 7.0.x
+- **Zotero Version**: 7.0.x and 8.x
 - **Operating Systems**: Windows, macOS, Linux
 - **Minimum Version**: Zotero 7
+- **Maximum Version**: Zotero 8
 
 ## 📄 License
 
