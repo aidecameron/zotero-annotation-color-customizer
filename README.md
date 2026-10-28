@@ -73,7 +73,7 @@ A simple Zotero 7 plugin that allows you to customize annotation color display n
 
 ## 📋 Compatibility
 
-- **Zotero Version**: 7.0.x
+- **Zotero Version**: 7.0.x, 8.x, 9.x, 10.x
 - **Operating Systems**: Windows, macOS, Linux
 - **Minimum Version**: Zotero 7
 

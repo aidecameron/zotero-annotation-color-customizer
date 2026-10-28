@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Annotation Color Customizer",
-  "version": "1.1.2",
-  "description": "Customize annotation color tooltips and right-click menu translations in Zotero 7",
+  "version": "1.3.1",
+  "description": "Customize annotation color tooltips and right-click menu translations in Zotero 7/8/9/10",
   "homepage_url": "https://github.com/aidecameron/zotero-annotation-color-customizer",
   "author": "aidecameron",
   "applications": {
@@ -10,7 +10,7 @@
       "id": "annotation-color-customizer@aidecameron.github.io",
       "update_url": "https://github.com/aidecameron/zotero-annotation-color-customizer/releases/latest/download/updates.json",
       "strict_min_version": "6.999",
-      "strict_max_version": "7.0.*"
+      "strict_max_version": "10.*"
     }
   },
   "icons": {

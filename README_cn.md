@@ -70,7 +70,7 @@
 
 ## 📋 兼容性
 
-- **Zotero 版本**：7.0.x
+- **Zotero 版本**：7.0.x, 8.x, 9.x, 10.x
 - **操作系统**：Windows、macOS、Linux
 - **最低版本要求**：Zotero 7
 
